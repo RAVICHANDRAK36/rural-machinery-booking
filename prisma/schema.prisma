@@ -1,0 +1,86 @@
+// Prisma schema for Rural Machinery Booking System
+// Fully compatible with PostgreSQL (Neon / Supabase) and SQLite
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  FARMER
+  OWNER
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id                String    @id @default(cuid())
+  name              String
+  phone             String    @unique
+  village           String
+  taluk             String
+  district          String
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  preferredLanguage String    @default("en")
+  profileImage      String?
+  businessName      String?
+  role              Role      @default(FARMER)
+  passwordHash      String
+  createdAt         DateTime  @default(now())
+
+  machines          Machine[]
+  bookings          Booking[]
+}
+
+model Machine {
+  id                 String    @id @default(cuid())
+  ownerId            String
+  owner              User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name               String
+  type               String
+  registrationNumber String
+  pricePerAcre       Float
+  pricePerHour       Float
+  village            String
+  taluk              String?
+  district           String?
+  latitude           Float?
+  longitude          Float?
+  imageUrl           String?
+  available          Boolean   @default(true)
+  maintenanceDay     Int       @default(0) // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  maintenanceEnabled Boolean   @default(true)
+  rating             Float     @default(4.8)
+  createdAt          DateTime  @default(now())
+
+  bookings           Booking[]
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  bookingNumber String        @unique
+  farmerId      String
+  farmer        User          @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  machineId     String
+  machine       Machine       @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  bookingDate   DateTime
+  timeSlot      String        // e.g. "08:00 AM"
+  acres         Float
+  workType      String
+  status        BookingStatus @default(PENDING)
+  totalCost     Float
+  notes         String?
+  createdAt     DateTime      @default(now())
+}
